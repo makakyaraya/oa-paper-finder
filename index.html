@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>無料論文サーチ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#18222d">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Antique+B1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 一本の縦カラム。上に検索、下に結果カード。カードは「無料で読めるか」が一目で分かる札つき */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#18222d; --muted:#5b6876; --line:#d3dae2;
+  --oa:#e5730c; --oa-soft:#fde9d6; --link:#1d5fa8; --ok:#1f7a4d; --ok-soft:#dcefe4; --warn-soft:#eef0f3;
+  --font-display:"Shippori Antique B1","BIZ UDPGothic",system-ui,sans-serif;
+  --font-body:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --surface:#1b222b; --ink:#e6ebf0; --muted:#97a3b0; --line:#2e3844;
+  --oa:#ff9a45; --oa-soft:#3a2815; --link:#7fb3ee; --ok:#5fcf94; --ok-soft:#173327; --warn-soft:#232b35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --surface:#1b222b; --ink:#e6ebf0; --muted:#97a3b0; --line:#2e3844;
+  --oa:#ff9a45; --oa-soft:#3a2815; --link:#7fb3ee; --ok:#5fcf94; --ok-soft:#173327; --warn-soft:#232b35; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.7}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:20px 80px;display:grid;gap:18px}
+header h1{font-family:var(--font-display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.02em;display:flex;align-items:center;gap:.5rem}
+.lock{width:26px;height:26px;flex:none}
+header p{margin:.2rem 0 0;color:var(--muted);font-size:.9rem}
+form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px}
+label{font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:.03em}
+input[type=text],input[type=password],select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--oa);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row > *{flex:1 1 140px;min-width:0}
+.btn{font:inherit;font-weight:700;border:0;border-radius:6px;padding:10px 18px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.sub{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:400}
+.btn:disabled{opacity:.5;cursor:default}
+.check{display:flex;align-items:center;gap:6px;font-size:.88rem;color:var(--ink)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
+details summary{cursor:pointer;font-size:.88rem;color:var(--muted)}
+details[open]{display:grid;gap:10px}
+.status{font-size:.88rem;color:var(--muted);min-height:1.5em}
+.status.err{color:#c0392b}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:8px;z-index:2;border-bottom:1px solid var(--line)}
+.toolbar .count{font-family:var(--font-mono);font-size:.85rem;font-variant-numeric:tabular-nums}
+.list{display:grid;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;min-width:0}
+.card.sel{border-color:var(--oa);box-shadow:0 0 0 1px var(--oa)}
+.top{display:flex;gap:10px;align-items:flex-start}
+.top input{margin-top:6px;width:18px;height:18px;flex:none;accent-color:var(--oa)}
+.title{font-weight:700;font-size:1.02rem;line-height:1.5;margin:0;min-width:0;overflow-wrap:anywhere}
+.meta{font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.meta .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--warn-soft);color:var(--muted);white-space:nowrap}
+.tag.pdf{background:var(--oa-soft);color:var(--oa);font-weight:700}
+.tag.ja{background:var(--ok-soft);color:var(--ok)}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a{font-size:.88rem;color:var(--link);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+.links a.main{background:var(--oa);color:#fff;border-color:var(--oa);font-weight:700}
+.links a:hover{text-decoration:underline}
+.abs summary{font-size:.82rem}
+.abs{border:0;padding:0;background:none}
+.abs p{margin:.4rem 0 0;font-size:.88rem;color:var(--ink);overflow-wrap:anywhere}
+.abs .ja-abs{border-left:3px solid var(--oa);padding-left:10px}
+.mini{font:inherit;font-size:.8rem;background:none;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:3px 9px;cursor:pointer;margin-top:6px}
+.more{justify-self:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px;font-size:.88rem;z-index:5}
+textarea.fallback{width:100%;min-height:120px;font-family:var(--font-mono);font-size:.8rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.9" fill="none" stroke="var(--oa)" stroke-width="2.4" stroke-linecap="round"/></svg>無料論文サーチ</h1>
+    <p>無料で全文が読める論文だけを探して、PDFやページに直接飛ぶ。データ元はOpenAlex。</p>
+  </header>
+
+  <form id="f">
+    <div>
+      <label for="q">キーワード・問い（日本語でも英語でも）</label>
+      <input type="text" id="q" placeholder="例: 為替 債券 相場" autocomplete="off" autofocus>
+    </div>
+    <div>
+      <label for="qen">英語の検索語（Geminiキーがあれば自動で入る。自分で書いてもいい）</label>
+      <input type="text" id="qen" placeholder="例: exchange rate bond market" autocomplete="off">
+    </div>
+    <div class="row">
+      <div><label for="sort">並び順</label>
+        <select id="sort"><option value="">関連が高い順</option><option value="cited_by_count:desc">引用が多い順</option><option value="publication_date:desc">新しい順</option></select></div>
+      <div><label for="from">この年以降</label>
+        <select id="from"><option value="">指定なし</option><option>2024</option><option>2020</option><option>2015</option><option>2010</option></select></div>
+      <button class="btn" id="go" type="submit">探す</button>
+    </div>
+    <div class="row">
+      <label class="check" style="margin:0"><input type="checkbox" id="pdfOnly"> PDF直リンクがあるものだけ</label>
+      <label class="check" style="margin:0"><input type="checkbox" id="incJa" checked> 日本語の論文も探す</label>
+    </div>
+  </form>
+
+  <details id="settings">
+    <summary>設定（APIキーは任意・この端末のブラウザにだけ保存）</summary>
+    <div><label for="geminiKey">Gemini APIキー（日本語→英語検索語の変換と、要旨の日本語訳に使う）</label>
+      <input type="password" id="geminiKey" autocomplete="off"></div>
+    <div><label for="geminiModel">Geminiのモデル名</label>
+      <input type="text" id="geminiModel" value="gemini-3.8-flash" autocomplete="off"></div>
+    <div><label for="oaKey">OpenAlex APIキー（なくても1日100回くらい検索できる）</label>
+      <input type="password" id="oaKey" autocomplete="off"></div>
+    <p class="hint">キーはそれぞれのサービス（GoogleとOpenAlex）にだけ送られる。</p>
+    <button class="btn sub" type="button" id="saveKeys">保存</button>
+  </details>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <span class="count" id="count"></span>
+    <button class="btn sub" type="button" id="copySel" disabled>選んだ論文のリンクをコピー</button>
+  </div>
+  <div class="status" id="status" role="status"></div>
+  <div class="list" id="list"></div>
+  <button class="btn sub more" id="more" type="button" hidden>もっと見る</button>
+  <div id="fallbackBox" hidden><p class="hint">コピーできなかったので、ここから選択してコピーして。</p><textarea class="fallback" id="fallback" readonly></textarea></div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const PER = 25;
+let results = [], seen = new Set(), selected = new Map(), page = 1, lastQuery = null;
+
+function store(k, v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } }
+['geminiKey','geminiModel','oaKey'].forEach(k=>{ const v = store('oafinder_'+k); if(v) $(k).value = v; });
+$('saveKeys').onclick = ()=>{ ['geminiKey','geminiModel','oaKey'].forEach(k=>store('oafinder_'+k, $(k).value.trim())); toast('保存した'); };
+
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+const hasJa = s => /[぀-ヿ㐀-鿿]/.test(s);
+function setStatus(msg, err){ $('status').textContent = msg; $('status').className = 'status' + (err?' err':''); }
+
+function abstractFrom(inv){
+  if(!inv) return '';
+  const words = [];
+  for(const [w, poss] of Object.entries(inv)) for(const p of poss) words[p] = w;
+  return words.filter(x=>x!==undefined).join(' ');
+}
+
+async function gemini(prompt){
+  const key = $('geminiKey').value.trim(); if(!key) throw new Error('nokey');
+  const model = $('geminiModel').value.trim() || 'gemini-3.8-flash';
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+  if(!r.ok){ let m=''; try{ m=(await r.json()).error?.message||''; }catch(e){} throw new Error('Gemini '+r.status+(m?'：'+m:'')); }
+  const j = await r.json();
+  return (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+}
+
+function oaURL(search, extraFilter, pg){
+  const filters = ['is_oa:true'];
+  if(extraFilter) filters.push(extraFilter);
+  const from = $('from').value; if(from) filters.push('from_publication_date:'+from+'-01-01');
+  const p = new URLSearchParams({search, filter:filters.join(','), per_page:String(PER), page:String(pg),
+    select:'id,doi,display_name,publication_year,language,primary_location,best_oa_location,open_access,cited_by_count,abstract_inverted_index,authorships'});
+  const sort = $('sort').value; if(sort) p.set('sort', sort);
+  const key = $('oaKey').value.trim(); if(key) p.set('api_key', key);
+  return 'https://api.openalex.org/works?' + p.toString();
+}
+
+async function fetchOA(search, extra, pg){
+  const r = await fetch(oaURL(search, extra, pg));
+  if(r.status===429) throw new Error('今日の検索回数の上限に達したみたい。OpenAlexの無料キーを設定に入れると増える。');
+  if(!r.ok) throw new Error('OpenAlexがエラーを返した（'+r.status+'）');
+  const j = await r.json();
+  return {items:j.results||[], total:j.meta?.count||0};
+}
+
+function normalize(w){
+  const best = w.best_oa_location || {};
+  const prim = w.primary_location || {};
+  const pdf = best.pdf_url || (prim.is_oa && prim.pdf_url) || null;
+  const page = best.landing_page_url || w.open_access?.oa_url || prim.landing_page_url || (w.doi||null);
+  const authors = (w.authorships||[]).map(a=>a.author?.display_name).filter(Boolean);
+  return {
+    id:w.id, title:w.display_name||'（タイトルなし）', year:w.publication_year, lang:w.language,
+    venue: (best.source||prim.source||{}).display_name || '', authors,
+    cited:w.cited_by_count||0, doi:w.doi, pdf, page,
+    oaStatus:w.open_access?.oa_status||'', license:best.license||'', version:best.version||'',
+    abstract:abstractFrom(w.abstract_inverted_index)
+  };
+}
+
+const VERSION_JA = {publishedVersion:'出版版', acceptedVersion:'著者最終稿', submittedVersion:'投稿版（査読前）'};
+
+function card(p){
+  const el = document.createElement('article'); el.className='card' + (selected.has(p.id)?' sel':'');
+  const top = document.createElement('div'); top.className='top';
+  const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=selected.has(p.id); cb.setAttribute('aria-label','この論文を選ぶ');
+  cb.onchange = ()=>{ cb.checked?selected.set(p.id,p):selected.delete(p.id); el.classList.toggle('sel',cb.checked); updateBar(); };
+  const h = document.createElement('h2'); h.className='title'; h.textContent=p.title;
+  top.append(cb,h); el.append(top);
+
+  const meta = document.createElement('div'); meta.className='meta';
+  const bits = [];
+  if(p.authors.length) bits.push(p.authors.slice(0,3).join(', ')+(p.authors.length>3?' ほか':''));
+  if(p.venue) bits.push(p.venue);
+  meta.innerHTML='';
+  bits.forEach(b=>{const s=document.createElement('span'); s.textContent=b; meta.append(s);});
+  const y=document.createElement('span'); y.className='mono'; y.textContent=(p.year||'----')+' · 被引用 '+p.cited; meta.append(y);
+  el.append(meta);
+
+  const tags=document.createElement('div'); tags.className='tags';
+  const t=(txt,cls)=>{const s=document.createElement('span'); s.className='tag'+(cls?' '+cls:''); s.textContent=txt; tags.append(s);};
+  p.pdf ? t('PDF直リンクあり','pdf') : t('Webページで公開');
+  if(p.lang==='ja') t('日本語','ja');
+  if(p.version && VERSION_JA[p.version]) t(VERSION_JA[p.version]);
+  if(p.license) t(p.license.toUpperCase());
+  el.append(tags);
+
+  const links=document.createElement('div'); links.className='links';
+  const a=(href,txt,main)=>{ if(!href) return; const l=document.createElement('a'); l.href=href; l.target='_blank'; l.rel='noopener'; l.textContent=txt; if(main) l.className='main'; links.append(l); };
+  a(p.pdf,'PDFを開く',true); a(p.page && p.page!==p.pdf ? p.page : null, p.pdf?'掲載ページ':'無料で読めるページを開く', !p.pdf);
+  el.append(links);
+
+  if(p.abstract){
+    const d=document.createElement('details'); d.className='abs';
+    const s=document.createElement('summary'); s.textContent='要旨を見る'; d.append(s);
+    const pa=document.createElement('p'); pa.textContent=p.abstract; d.append(pa);
+    if(hasJa(p.abstract)===false){
+      const b=document.createElement('button'); b.type='button'; b.className='mini'; b.textContent='日本語で読む（Gemini）';
+      b.onclick=async()=>{
+        if(!$('geminiKey').value.trim()){ toast('設定にGeminiキーを入れると使える'); return; }
+        b.disabled=true; b.textContent='訳しています…';
+        try{ const ja=await gemini('次の学術論文の要旨を自然な日本語に訳して。訳文だけを返して。専門用語は初出で英語を括弧で添えて。\n\n'+p.abstract);
+          const q=document.createElement('p'); q.className='ja-abs'; q.textContent=ja; d.append(q); b.remove();
+        }catch(e){ b.disabled=false; b.textContent='日本語で読む（Gemini）'; toast('訳せなかった: '+e.message); }
+      };
+      d.append(b);
+    }
+    el.append(d);
+  }
+  return el;
+}
+
+function render(){
+  const only = $('pdfOnly').checked;
+  const list = $('list'); list.innerHTML='';
+  const shown = results.filter(p=>!only||p.pdf);
+  shown.forEach(p=>list.append(card(p)));
+  $('toolbar').hidden = results.length===0;
+  const pdfN = results.filter(p=>p.pdf).length;
+  $('count').textContent = `${shown.length}件表示（うちPDF直リンク ${only?shown.length:pdfN}件）`;
+  updateBar();
+}
+function updateBar(){ const n=selected.size; $('copySel').disabled=!n; $('copySel').textContent = n?`選んだ${n}件のリンクをコピー`:'選んだ論文のリンクをコピー'; }
+
+async function run(more){
+  const q=$('q').value.trim();
+  if(!more){
+    if(!q && !$('qen').value.trim()){ setStatus('キーワードを入れて'); return; }
+    results=[]; seen=new Set(); page=1;
+    let en=$('qen').value.trim();
+    if(!en && !hasJa(q)) en=q;
+    if(!en && hasJa(q) && $('geminiKey').value.trim()){
+      setStatus('英語の検索語に変換しています…');
+      try{ en = await gemini('次の日本語の関心を、英語の学術論文データベースで検索するための短い英語キーワード列（3〜7語、記号なし）に変換して。キーワードだけを1行で返して。\n\n'+q);
+        en = en.split('\n')[0].replace(/["“”]/g,'').trim(); $('qen').value=en;
+      }catch(e){ setStatus('英語への変換に失敗（'+e.message+'）。日本語のまま探す。',true); }
+    }
+    lastQuery={en, ja: hasJa(q)&&$('incJa').checked ? q : ''};
+  } else page++;
+
+  const {en, ja} = lastQuery;
+  if(!en && !ja){ setStatus('英語の検索語を入れるか、「日本語の論文も探す」をオンにして'); return; }
+  $('go').disabled=true; $('more').hidden=true; setStatus('探しています…');
+  try{
+    const jobs=[];
+    if(en) jobs.push(fetchOA(en,'',page));
+    if(ja) jobs.push(fetchOA(ja,'language:ja',page));
+    const res = await Promise.all(jobs);
+    const lists = res.map(r=>r.items.map(normalize));
+    const maxLen = Math.max(0,...lists.map(l=>l.length));
+    for(let i=0;i<maxLen;i++) for(const l of lists){ const p=l[i]; if(p && !seen.has(p.id)){ seen.add(p.id); results.push(p);} }
+    const totals = res.map(r=>r.total);
+    const msg = [];
+    if(en) msg.push(`英語「${en}」: 無料で読めるもの ${totals[0].toLocaleString()}件`);
+    if(ja) msg.push(`日本語「${ja}」: ${totals[en?1:0].toLocaleString()}件`);
+    if(!en && ja) msg.push('英語の検索語がないので日本語の論文だけ。英語の論文の方がずっと多い。');
+    setStatus(msg.join(' / '));
+    render();
+    $('more').hidden = !res.some(r=>r.total > page*PER);
+  }catch(e){
+    const m = (e instanceof TypeError) ? 'つながらなかった。ネット接続を確認して。この画面がclaude.aiの中で開かれていると外部につながらないので、ファイルをブラウザで直接開いて。' : e.message;
+    setStatus(m,true);
+  }finally{ $('go').disabled=false; }
+}
+
+$('f').addEventListener('submit', e=>{ e.preventDefault(); run(false); });
+$('more').onclick=()=>run(true);
+$('pdfOnly').onchange=render;
+$('q').addEventListener('input', ()=>{ /* 問いを変えたら英語欄は作り直す */ if($('qen').dataset.auto!=='0') $('qen').value=''; });
+$('qen').addEventListener('input', ()=>{ $('qen').dataset.auto = $('qen').value ? '0' : ''; });
+
+$('copySel').onclick = async ()=>{
+  const text = [...selected.values()].map(p=>`${p.title}\n${p.pdf||p.page||''}`).join('\n\n');
+  try{ await navigator.clipboard.writeText(text); toast('コピーした'); $('fallbackBox').hidden=true; }
+  catch(e){ $('fallback').value=text; $('fallbackBox').hidden=false; $('fallback').select(); }
+};
+
+})();
+</script>
+</body>
+</html>
